@@ -1,0 +1,10 @@
+const express=require("express"),cors=require("cors");
+const app=express(); app.use(cors()); app.use(express.json());
+const PORT=process.env.PORT||8080, API_TOKEN=process.env.API_TOKEN||"";
+let current=null;
+const auth=(req,res,next)=>{ if(!API_TOKEN) return next(); const h=req.get("Authorization")||""; return h===`Bearer ${API_TOKEN}`?next():res.status(401).json({error:"unauthorized"}); };
+app.post("/active-speaker",auth,(req,res)=>{ const {userId,username,speaking}=req.body||{}; if(!userId) return res.status(400).json({error:"missing userId"});
+  if(speaking) current={userId:String(userId),username:username||"",updatedAt:Date.now()}; else if(current&&current.userId===String(userId)) current=null; res.json({ok:true}); });
+app.get("/active-speaker",auth,(req,res)=>{ const EXPIRE_MS=8000; if(current&&Date.now()-current.updatedAt<EXPIRE_MS) return res.json(current); res.json({}); });
+app.get("/",(_,res)=>res.send("Voice API OK"));
+app.listen(PORT,()=>console.log("Voice API listening on :"+PORT));
